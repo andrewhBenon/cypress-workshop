@@ -27,7 +27,7 @@ Cypress.Commands.add('fillAndSubmitRegistrationForm', userDetails => {
     cy.get('input[id=signup_form_email]').type(userDetails.email);
     //Enter password
     cy.get('input[id=signup_form_password').type(userDetails.password);
-    //Enter first name 
+    //Enter first name
     cy.get('input[id=signup_form_firstname]').type(userDetails.firstName);
     //Enter last name
     cy.get('input[id=signup_form_lastname]').type(userDetails.lastName);
@@ -48,4 +48,50 @@ Cypress.Commands.add('fillAndSubmitRegistrationForm', userDetails => {
     cy.get('input[id=signup_form_agree][type=checkbox]').check({force:true});
     //Submit form
     cy.get('button[data-id=signup_form_submitButton').click();
+});
+
+import sha1 from "sha1";
+const TEST_API_URL = Cypress.env("TEST_API_URL");
+
+Cypress.Commands.add('createCustomerWithAPI', () =>{
+    cy.request("POST", `${TEST_API_URL}/testapi/customer/create`).then((response) => {
+        return {
+            customerId: response.body.customer_id,
+			email: response.body.email,
+			password: "4Me2Testit"
+        }
+    });
+});
+
+Cypress.Commands.add('loginWithAPI', { prevSubject: "optional" }, (subject, email, password) =>{
+    const apiURL = Cypress.config('baseUrl').replace('www','api')
+    const appKey = 'ozlotteries_ios_1';
+	const appSecret = 'cho4Maec2Shoom3Aigie';
+	const time = Date.now();
+	const skey = sha1(`${appKey}${time}${appSecret}`);
+    const domain = Cypress.config('baseUrl').replace(/https?:\/\/www/, '');
+    cy.request({
+        method: "POST",
+        headers: {
+            "X-Jumbo-Version": "2.9",
+			"X-Jumbo-AppKey": appKey,
+			"X-Jumbo-SKEY": skey,
+			"X-Jumbo-Timestamp": time,
+			"content-type": "application/json"
+        },
+        url: `${apiURL}/v2/login`,
+        body: {
+                email: subject.email,
+			    password: subject.password
+            }
+    }).then((response) => {
+        const{
+            access_token: accessToken,
+			customer_token: customerToken,
+			customer: { id: customerID }
+        } = response.body.result;
+        cy.setCookie("web_access_token",accessToken, {domain});
+        cy.setCookie("customer_id", customerID, {domain});
+        cy.setCookie("customer_token", customerToken, {domain})
+    });
 });

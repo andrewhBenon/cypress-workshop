@@ -13,10 +13,10 @@ function createUserDetails(){
 		lastName
 	}
 }
-const userDetails = createUserDetails();
 //Test to ensure the user is able to successfully register an account
 //then log into the account
 describe("Register then login test", () => {
+	const userDetails = createUserDetails();
 	it("should create an account", () => {
 		//visit the home page
 		cy.visit("/");
@@ -72,3 +72,27 @@ describe("Register then login test", () => {
 		cy.get('button[data-id=LoginRegister_Login_submitButton]').click();
 	});
 });
+
+describe('Register then login with the API', () => {
+	const TEST_API_URL = Cypress.env("TEST_API_URL");
+	it('should create a customer', () =>{
+		cy.request("POST", `${TEST_API_URL}/testapi/customer/create`).then((response) => {
+            expect(response.status).to.eq(201);
+            expect(response.body).to.have.property('email');
+            expect(response.body).to.have.property('customer_id');
+            expect(response.body.email).is.not.empty;
+            expect(response.body.customer_id).is.not.empty;
+            expect(response.body.email.length).lessThan(321);
+            expect(response.body.email.length).greaterThan(3);
+            expect(response.body.customer_id.length).equal(19);
+        });
+	});
+	it('should login user', () => {
+		//cy.userCreate().userLoginWithAPI();
+		cy.createCustomerWithAPI().loginWithAPI();
+		cy.visit('/my-account')
+		cy.get("a[data-id=myAccount_withdrawButton]").should("be.visible");
+	});
+});
+
+
